@@ -1,15 +1,19 @@
 package com.pjh.community;
 
+import com.pjh.community.dao.DiscussPostMapper;
 import com.pjh.community.dao.UserMapper;
+import com.pjh.community.entity.DiscussPost;
 import com.pjh.community.entity.User;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.Date;
+import java.util.List;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -61,7 +65,9 @@ public class MybatisTest {
         System.out.println(rows);
     }
 
-    /*@Test
+    @Autowired(required = false)
+    private DiscussPostMapper discussPostMapper;
+    @Test
     public void testSelectPosts() {
         List<DiscussPost> list = discussPostMapper.selectDiscussPosts(149, 0, 10);
         for(DiscussPost post : list) {
@@ -70,6 +76,6 @@ public class MybatisTest {
 
         int rows = discussPostMapper.selectDiscussPostRows(149);
         System.out.println(rows);
-    }*/
+    }
 
 }
