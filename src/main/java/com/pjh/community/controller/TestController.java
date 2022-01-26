@@ -1,6 +1,7 @@
 package com.pjh.community.controller;
 
 import com.pjh.community.service.TestService;
+import com.pjh.community.utils.CommunityUtil;
 import javafx.beans.binding.ObjectExpression;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -8,8 +9,10 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.*;
@@ -129,5 +132,48 @@ public class TestController {
         p3.put("年薪",45);
         data.add(p3);
         return data;
+    }
+
+    // cookie示例
+    @RequestMapping(path = "/cookie/set", method = RequestMethod.GET)
+    @ResponseBody
+    public String setCookie(HttpServletResponse response){
+        // 创建cookie
+        Cookie cookie = new Cookie("code", CommunityUtil.getUUID());
+        // 设置cookie生效的范围
+        cookie.setPath("/community/test");
+        // 设置cookie的生存时间
+        cookie.setMaxAge(60*10);
+        // 发送cookie
+        response.addCookie(cookie);
+        return "set Cookie";
+    }
+
+    @RequestMapping(path = "/cookie/get",method = RequestMethod.GET)
+    @ResponseBody
+    public String getCookie(@CookieValue("code") String code){
+        System.out.println(code);
+        return "get cookie:"+code;
+    }
+
+    // session示例
+    @RequestMapping(path = "/session/set",method = RequestMethod.GET)
+    @ResponseBody
+    public String setSession(HttpSession session){
+        session.setAttribute("name","session1");
+        session.setAttribute("id",123);
+        return "set Session";
+    }
+
+    // session示例
+    @RequestMapping(path = "/session/get",method = RequestMethod.GET)
+    @ResponseBody
+    public String getSession(HttpSession session){
+        String name = (String) session.getAttribute("name");
+        int id = (int) session.getAttribute("id");
+        System.out.println(id);
+        System.out.println(name);
+        return "get Session:/n id:"+id
+                +"/n name : "+name;
     }
 }
