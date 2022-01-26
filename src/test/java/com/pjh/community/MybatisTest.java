@@ -1,8 +1,10 @@
 package com.pjh.community;
 
 import com.pjh.community.dao.DiscussPostMapper;
+import com.pjh.community.dao.LoginTicketMapper;
 import com.pjh.community.dao.UserMapper;
 import com.pjh.community.entity.DiscussPost;
+import com.pjh.community.entity.LoginTicket;
 import com.pjh.community.entity.User;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -76,6 +78,29 @@ public class MybatisTest {
 
         int rows = discussPostMapper.selectDiscussPostRows(149);
         System.out.println(rows);
+    }
+
+    @Autowired(required = false)
+    private LoginTicketMapper loginTicketMapper;
+    @Test
+    public void testInsertLoginTicket(){
+        LoginTicket loginTicket = new LoginTicket();
+        loginTicket.setUserId(101);
+        loginTicket.setStatus(0);
+        loginTicket.setTicket("testcase");
+        loginTicket.setExpired(new Date(System.currentTimeMillis()+60*10*1000));// 十分钟
+
+        loginTicketMapper.insertLoginTicket(loginTicket);
+    }
+
+    @Test
+    public void testSelectAndUpdateLoginTicket(){
+        LoginTicket loginTicket = loginTicketMapper.selectByTicket("testcase");
+        System.out.println(loginTicket);
+
+        loginTicketMapper.updateStatus(loginTicket.getTicket(),1);
+        loginTicket = loginTicketMapper.selectByTicket(loginTicket.getTicket());
+        System.out.println(loginTicket);
     }
 
 }

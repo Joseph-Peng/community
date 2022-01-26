@@ -4,18 +4,18 @@ import com.google.code.kaptcha.Producer;
 import com.pjh.community.entity.User;
 import com.pjh.community.service.UserService;
 import com.pjh.community.utils.CommunityConstant;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
 
 import javax.imageio.ImageIO;
 import javax.servlet.ServletOutputStream;
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.awt.*;
@@ -33,6 +33,10 @@ public class LoginController {
 
     @Autowired
     private Producer kaptchaProducer;
+
+    @Value("${server.servlet.context-path}")
+    private String contexPath;
+
 
     @RequestMapping(path = "/register", method = RequestMethod.GET)
     public String getRegisterPage(){
@@ -76,6 +80,11 @@ public class LoginController {
         return "/site/operate-result";
     }
 
+    /**
+     *
+     * @param response   将图片输出给浏览器
+     * @param session    将验证码存入session，便于登录时比对
+     */
     @RequestMapping(path = "/kaptcha", method = RequestMethod.GET)
     public void getKaptcha(HttpServletResponse response, HttpSession session){
         // 生成验证码
@@ -92,5 +101,48 @@ public class LoginController {
         } catch (IOException e) {
             logger.error("响应验证码失败："+e.getMessage());
         }
+    }
+
+    /**
+     *
+     * @param username
+     * @param password
+     * @param code
+     * @param rememberme
+     * @param model
+     * @param session     获取验证码
+     * @param response    将登录的ticket存入Cookie，并返回给浏览器
+     * @return
+     */
+    @RequestMapping(path = "/login", method = RequestMethod.POST)
+    public String login(String username, String password, String code, boolean rememberme,
+                        Model model, HttpSession session, HttpServletResponse response){
+        // 首先检查验证码
+        String kaptcha = (String) session.getAttribute("kaptcha");
+        if(StringUtils.isBlank(kaptcha) || StringUtils.isBlank(code) || !kaptcha.equalsIgnoreCase(code)){
+            model.addAttribute("codeMsg","验证码不正确！");
+            return "/site/login";
+        }
+
+        // 验证账号密码
+        int expiredSeconds = rememberme ? CommunityConstant.REMEMBER_EXPIRED_SECONDS : CommunityConstant.DEFAULT_EXPIRED_SECONDS;
+        Map<String, Object> loginInfo = userService.login(username, password, expiredSeconds);
+        if(loginInfo.containsKey("ticket")){
+            Cookie cookie = new Cookie("ticket",loginInfo.get("ticket").toString());
+            cookie.setMaxAge(expiredSeconds);
+            cookie.setPath(contexPath);
+            response.addCookie(cookie);
+            return "redirect:/index";
+        }else {
+            model.addAttribute("usernameMsg",loginInfo.get("usernameMsg"));
+            model.addAttribute("passwordMsg",loginInfo.get("passwordMsg"));
+            return "/site/login";
+        }
+    }
+
+    @RequestMapping(path = "/logout", method = RequestMethod.GET)
+    public String logout(@CookieValue("ticket") String ticket){
+        userService.logout(ticket);
+        return "redirect:/login";
     }
 }
