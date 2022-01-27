@@ -1,5 +1,7 @@
 package com.pjh.community.config;
 
+import com.pjh.community.annotation.LoginRequired;
+import com.pjh.community.interceptor.LoginRequiredInterceptor;
 import com.pjh.community.interceptor.LoginTicketInterceptor;
 import com.pjh.community.interceptor.TestInterceptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +18,9 @@ public class WebMVCConfig implements WebMvcConfigurer {
     @Autowired
     private LoginTicketInterceptor loginTicketInterceptor;
 
+    @Autowired
+    private LoginRequiredInterceptor loginRequiredInterceptor;
+
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(testInterceptor)
@@ -23,6 +28,9 @@ public class WebMVCConfig implements WebMvcConfigurer {
         .addPathPatterns("/login","/register");
 
         registry.addInterceptor(loginTicketInterceptor)
+                .excludePathPatterns("/**/*.css","/**/*.js","/**/*.jpg","/**/*.png","/**/*.jpeg");
+
+        registry.addInterceptor(loginRequiredInterceptor)
                 .excludePathPatterns("/**/*.css","/**/*.js","/**/*.jpg","/**/*.png","/**/*.jpeg");
 
     }

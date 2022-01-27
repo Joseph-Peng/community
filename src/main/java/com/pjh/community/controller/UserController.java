@@ -1,5 +1,6 @@
 package com.pjh.community.controller;
 
+import com.pjh.community.annotation.LoginRequired;
 import com.pjh.community.entity.User;
 import com.pjh.community.service.UserService;
 import com.pjh.community.utils.CommunityUtil;
@@ -41,11 +42,13 @@ public class UserController {
     @Autowired
     private HostHolder hostHolder;
 
+    @LoginRequired
     @RequestMapping(path = "/setting", method = RequestMethod.GET)
     public String getSettingPage(){
         return "/site/setting";
     }
 
+    @LoginRequired
     @RequestMapping(path = "/uploadHeaderImage", method = RequestMethod.POST)
     public String uploadHeaderImage(MultipartFile headerImage, Model model){
         if(headerImage==null){
@@ -105,6 +108,15 @@ public class UserController {
         } catch (IOException e) {
             logger.error("读取头像失败: " + e.getMessage());
         }
+    }
+
+    @RequestMapping(path = "/changePassword", method = RequestMethod.POST)
+    public String changePassword(String oldPassword, String newPassword){
+        System.out.println("oldPassword: "+oldPassword);
+        System.out.println("newPassword: "+newPassword);
+
+
+        return "redirect:/logout";
     }
 
 }
