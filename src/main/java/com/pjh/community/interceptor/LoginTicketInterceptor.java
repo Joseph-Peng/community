@@ -1,0 +1,57 @@
+package com.pjh.community.interceptor;
+
+import com.pjh.community.entity.LoginTicket;
+import com.pjh.community.entity.User;
+import com.pjh.community.service.UserService;
+import com.pjh.community.utils.CookieUtil;
+import com.pjh.community.utils.HostHolder;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import org.springframework.web.servlet.HandlerInterceptor;
+import org.springframework.web.servlet.ModelAndView;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.util.Date;
+
+@Component
+public class LoginTicketInterceptor  implements HandlerInterceptor {
+
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private HostHolder hostHolder;
+
+    // 执行Controller之前
+    @Override
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+        // 1.通过Cookie中得到ticket
+        String ticket = CookieUtil.getValue(request,"ticket");
+        if(ticket!=null){
+            // 查询凭证
+            LoginTicket loginTicket = userService.findLoginTicket(ticket);
+            // 检查凭证是否有效
+            if(loginTicket!=null && loginTicket.getStatus()==0 && loginTicket.getExpired().after(new Date())){
+                //获取用户信息
+                User user = userService.selectById(loginTicket.getUserId());
+                hostHolder.setUser(user);
+            }
+        }
+        return true;
+    }
+
+    // 执行Controller之后，执行视图之前
+    @Override
+    public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView) throws Exception {
+        User user = hostHolder.getUser();
+        if (user!=null && modelAndView != null){
+            modelAndView.addObject("user",user);
+        }
+    }
+
+    @Override
+    public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
+        hostHolder.clear();
+    }
+}
