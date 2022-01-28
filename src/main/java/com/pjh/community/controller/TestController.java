@@ -176,4 +176,13 @@ public class TestController {
         return "get Session:/n id:"+id
                 +"/n name : "+name;
     }
+
+    // ajax示例
+    @RequestMapping(path = "/ajax", method = RequestMethod.POST)
+    @ResponseBody
+    public String testAjax(String name, int age) {
+        System.out.println(name);
+        System.out.println(age);
+        return CommunityUtil.getJSONString(0, "操作成功!");
+    }
 }
