@@ -2,6 +2,7 @@ package com.pjh.community.controller;
 
 import com.pjh.community.annotation.LoginRequired;
 import com.pjh.community.entity.User;
+import com.pjh.community.service.LikeService;
 import com.pjh.community.service.UserService;
 import com.pjh.community.utils.CommunityUtil;
 import com.pjh.community.utils.HostHolder;
@@ -41,6 +42,9 @@ public class UserController {
 
     @Autowired
     private HostHolder hostHolder;
+
+    @Autowired
+    private LikeService likeService;
 
     @LoginRequired
     @RequestMapping(path = "/setting", method = RequestMethod.GET)
@@ -117,6 +121,23 @@ public class UserController {
 
 
         return "redirect:/logout";
+    }
+
+    // 个人主页
+    @RequestMapping(path = "/profile/{userId}", method = RequestMethod.GET)
+    public String getProfilePage(@PathVariable("userId") int userId, Model model) {
+        User user = userService.selectById(userId);
+        if (user == null) {
+            throw new RuntimeException("该用户不存在!");
+        }
+
+        // 用户
+        model.addAttribute("currentUser", user);
+        // 点赞数量
+        int likeCount = likeService.findUserLikeCount(userId);
+        model.addAttribute("likeCount", likeCount);
+
+        return "/site/profile";
     }
 
 }

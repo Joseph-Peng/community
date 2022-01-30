@@ -4,6 +4,7 @@ import com.pjh.community.entity.DiscussPost;
 import com.pjh.community.entity.Page;
 import com.pjh.community.entity.User;
 import com.pjh.community.service.DiscussPostService;
+import com.pjh.community.service.LikeService;
 import com.pjh.community.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -16,6 +17,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.pjh.community.utils.CommunityConstant.ENTITY_TYPE_POST;
+
 @Controller
 @SuppressWarnings("all")
 public class HomeController {
@@ -25,6 +28,9 @@ public class HomeController {
 
     @Autowired(required = false)
     private UserService userService;
+
+    @Autowired
+    private LikeService likeService;
 
     @RequestMapping(path = "/index", method = RequestMethod.GET)
     public String getIndexPage(Model model, Page page){
@@ -42,6 +48,10 @@ public class HomeController {
                 map.put("post",post);
                 User user = userService.selectById(post.getUserId());
                 map.put("user",user);
+
+                long likeCount = likeService.findEntityLikeCount(ENTITY_TYPE_POST, post.getId());
+                map.put("likeCount", likeCount);
+
                 discussPosts.add(map);
             }
         }
