@@ -7,9 +7,11 @@ import com.pjh.community.entity.User;
 import com.pjh.community.utils.CommunityConstant;
 import com.pjh.community.utils.CommunityUtil;
 import com.pjh.community.utils.MailClient;
+import com.pjh.community.utils.RedisKeyUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
@@ -18,6 +20,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class UserService {
@@ -31,8 +34,11 @@ public class UserService {
     @Autowired
     private TemplateEngine templateEngine;
 
-    @Autowired(required = false)
-    private LoginTicketMapper loginTicketMapper;
+    @Autowired
+    private RedisTemplate redisTemplate;
+
+    /*@Autowired(required = false)
+    private LoginTicketMapper loginTicketMapper;*/
 
     @Value("${community.path.domain}")
     private String domain;
@@ -41,7 +47,12 @@ public class UserService {
     private String contextPath;
 
     public User selectById(int id){
-        return userMapper.selectById(id);
+        User user = getCache(id);
+        //System.out.println(user);
+        if (user == null){
+            user = initCache(id);
+        }
+        return user;
     }
 
     public Map<String, Object> register(User user){
@@ -104,6 +115,7 @@ public class UserService {
             return CommunityConstant.ACTIVATION_REPEAT;
         }else if(u.getActivationCode().equals(code)){
             userMapper.updateStatus(userId,1);
+            clearCache(userId);
             return CommunityConstant.ACTIVATION_SUCCESS;
         }else {
             return CommunityConstant.ACTIVATION_FAILURE;
@@ -150,7 +162,9 @@ public class UserService {
         loginTicket.setTicket(CommunityUtil.getUUID());
         loginTicket.setStatus(0);
         loginTicket.setExpired(new Date(System.currentTimeMillis() + expiredSeconds*1000));
-        loginTicketMapper.insertLoginTicket(loginTicket);
+        //loginTicketMapper.insertLoginTicket(loginTicket);
+        String loginTicketKey = RedisKeyUtil.getTicketKey(loginTicket.getTicket());
+        redisTemplate.opsForValue().set(loginTicketKey, loginTicket);
 
         map.put("ticket", loginTicket.getTicket());
 
@@ -158,18 +172,47 @@ public class UserService {
     }
 
     public void logout(String ticket) {
-        loginTicketMapper.updateStatus(ticket, 1);
+        //loginTicketMapper.updateStatus(ticket, 1);
+        String loginTicketKey = RedisKeyUtil.getTicketKey(ticket);
+        //System.out.println(ticket);
+        LoginTicket loginTicket = (LoginTicket) redisTemplate.opsForValue().get(loginTicketKey);
+        loginTicket.setStatus(1);
+        redisTemplate.opsForValue().set(loginTicketKey, loginTicket);
     }
 
     public LoginTicket findLoginTicket(String ticket){
-        return loginTicketMapper.selectByTicket(ticket);
+        String loginTicketKey = RedisKeyUtil.getTicketKey(ticket);
+        return (LoginTicket) redisTemplate.opsForValue().get(loginTicketKey);
     }
 
     public int updateHeader(int userId, String headerUrl) {
-        return userMapper.updateHeader(userId, headerUrl);
+        //return userMapper.updateHeader(userId, headerUrl);
+        int rows = userMapper.updateHeader(userId, headerUrl);
+        clearCache(userId);
+        return rows;
     }
 
     public User findUserByName(String username) {
         return userMapper.selectByName(username);
+    }
+
+    // 1.优先从缓存中取值
+    private User getCache(int userId) {
+        String redisKey = RedisKeyUtil.getUserKey(userId);
+        return (User) redisTemplate.opsForValue().get(redisKey);
+    }
+
+    // 2.取不到时初始化缓存数据
+    private User initCache(int userId) {
+        User user = userMapper.selectById(userId);
+        String redisKey = RedisKeyUtil.getUserKey(userId);
+        redisTemplate.opsForValue().set(redisKey, user, 3600, TimeUnit.SECONDS);
+        return user;
+    }
+
+    // 3.数据变更时清除缓存数据
+    private void clearCache(int userId) {
+        String redisKey = RedisKeyUtil.getUserKey(userId);
+        redisTemplate.delete(redisKey);
     }
 }
