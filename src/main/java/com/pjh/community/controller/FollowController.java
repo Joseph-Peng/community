@@ -1,7 +1,9 @@
 package com.pjh.community.controller;
 
+import com.pjh.community.entity.Event;
 import com.pjh.community.entity.Page;
 import com.pjh.community.entity.User;
+import com.pjh.community.event.EventProducer;
 import com.pjh.community.service.FollowService;
 import com.pjh.community.service.UserService;
 import com.pjh.community.utils.CommunityConstant;
@@ -19,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 
 import static com.pjh.community.utils.CommunityConstant.ENTITY_TYPE_USER;
+import static com.pjh.community.utils.CommunityConstant.TOPIC_FOLLOW;
 
 @Controller
 public class FollowController {
@@ -32,12 +35,24 @@ public class FollowController {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private EventProducer eventProducer;
+
     @RequestMapping(path = "/follow", method = RequestMethod.POST)
     @ResponseBody
     public String follow(int entityType, int entityId) {
         User user = hostHolder.getUser();
-
         followService.follow(user.getId(), entityType, entityId);
+
+        // 触发关注事件
+        Event event = new Event()
+                .setTopic(TOPIC_FOLLOW)
+                .setUserId(hostHolder.getUser().getId())
+                .setEntityType(entityType)
+                .setEntityId(entityId)
+                .setEntityUserId(entityId);
+        eventProducer.fireEvent(event);
+
         return CommunityUtil.getJSONString(0, "已关注!");
     }
 

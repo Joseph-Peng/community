@@ -1,6 +1,8 @@
 package com.pjh.community.controller;
 
+import com.pjh.community.entity.Event;
 import com.pjh.community.entity.User;
+import com.pjh.community.event.EventProducer;
 import com.pjh.community.service.LikeService;
 import com.pjh.community.utils.CommunityUtil;
 import com.pjh.community.utils.HostHolder;
@@ -13,6 +15,8 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.pjh.community.utils.CommunityConstant.TOPIC_LIKE;
+
 @Controller
 public class LikeController {
 
@@ -22,12 +26,17 @@ public class LikeController {
     @Autowired
     private HostHolder hostHolder;
 
+    @Autowired
+    private EventProducer eventProducer;
+
     @RequestMapping(path = "/like", method = RequestMethod.POST)
     @ResponseBody
-    public String like(int entityType, int entityId, int entityUserId) {
+    public String like(int entityType, int entityId, int entityUserId, int postId) {
         User user = hostHolder.getUser();
 
         // 点赞
+        //System.out.println(likeService);
+        //System.out.println(user);
         likeService.like(user.getId(), entityType, entityId, entityUserId);
 
         // 数量
@@ -38,6 +47,18 @@ public class LikeController {
         Map<String, Object> map = new HashMap<>();
         map.put("likeCount", likeCount);
         map.put("likeStatus", likeStatus);
+
+        // 1.点赞  0.取消点赞   只有在点赞时才发送通知
+        if (likeStatus == 1){
+            Event event = new Event()
+                    .setTopic(TOPIC_LIKE)
+                    .setUserId(hostHolder.getUser().getId())
+                    .setEntityType(entityType)
+                    .setEntityId(entityId)
+                    .setEntityUserId(entityUserId)
+                    .setData("postId", postId);  // 需要能链到对应的帖子
+            eventProducer.fireEvent(event);
+        }
 
         return CommunityUtil.getJSONString(0, null, map);
     }
