@@ -1,13 +1,12 @@
 package com.pjh.community.controller;
 
-import com.pjh.community.entity.Comment;
-import com.pjh.community.entity.DiscussPost;
-import com.pjh.community.entity.Page;
-import com.pjh.community.entity.User;
+import com.pjh.community.entity.*;
+import com.pjh.community.event.EventProducer;
 import com.pjh.community.service.CommentService;
 import com.pjh.community.service.DiscussPostService;
 import com.pjh.community.service.LikeService;
 import com.pjh.community.service.UserService;
+import com.pjh.community.utils.CommunityConstant;
 import com.pjh.community.utils.CommunityUtil;
 import com.pjh.community.utils.HostHolder;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,12 +19,9 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.util.*;
 
-import static com.pjh.community.utils.CommunityConstant.ENTITY_TYPE_COMMENT;
-import static com.pjh.community.utils.CommunityConstant.ENTITY_TYPE_POST;
-
 @Controller
 @RequestMapping("/discuss")
-public class DiscussPostController {
+public class DiscussPostController implements CommunityConstant {
 
     @Autowired
     private DiscussPostService discussPostService;
@@ -42,6 +38,9 @@ public class DiscussPostController {
     @Autowired
     private CommentService commentService;
 
+    @Autowired
+    private EventProducer eventProducer;
+
     @RequestMapping(path = "/add", method = RequestMethod.POST)
     @ResponseBody
     public String addDiscussPost(String title, String content) {
@@ -56,6 +55,14 @@ public class DiscussPostController {
         post.setContent(content);
         post.setCreateTime(new Date());
         discussPostService.addDiscussPost(post);
+
+        //发布帖子
+        Event event = new Event()
+                .setTopic(TOPIC_PUBLISH)
+                .setUserId(user.getId())
+                .setEntityType(ENTITY_TYPE_POST)
+                .setEntityId(post.getId());
+        eventProducer.fireEvent(event);
 
         // 报错的情况,将来统一处理.
         return CommunityUtil.getJSONString(0, "发布成功!");
