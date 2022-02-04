@@ -18,8 +18,8 @@ public class DiscussPostService {
     @Autowired(required = false)
     private DiscussPostMapper discussPostMapper;
 
-    public List<DiscussPost> selectDiscussPosts(int userId, int offset, int limit){
-        return discussPostMapper.selectDiscussPosts(userId,offset,limit);
+    public List<DiscussPost> selectDiscussPosts(int userId, int offset, int limit, int orderMode){
+        return discussPostMapper.selectDiscussPosts(userId,offset,limit,orderMode);
     }
 
     public int findDiscussPostRows(int userId) {

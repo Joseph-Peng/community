@@ -4,9 +4,12 @@ import com.pjh.community.entity.Event;
 import com.pjh.community.entity.User;
 import com.pjh.community.event.EventProducer;
 import com.pjh.community.service.LikeService;
+import com.pjh.community.utils.CommunityConstant;
 import com.pjh.community.utils.CommunityUtil;
 import com.pjh.community.utils.HostHolder;
+import com.pjh.community.utils.RedisKeyUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -15,10 +18,8 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import java.util.HashMap;
 import java.util.Map;
 
-import static com.pjh.community.utils.CommunityConstant.TOPIC_LIKE;
-
 @Controller
-public class LikeController {
+public class LikeController implements CommunityConstant {
 
     @Autowired
     private LikeService likeService;
@@ -28,6 +29,9 @@ public class LikeController {
 
     @Autowired
     private EventProducer eventProducer;
+
+    @Autowired
+    private RedisTemplate redisTemplate;
 
     @RequestMapping(path = "/like", method = RequestMethod.POST)
     @ResponseBody
@@ -58,6 +62,12 @@ public class LikeController {
                     .setEntityUserId(entityUserId)
                     .setData("postId", postId);  // 需要能链到对应的帖子
             eventProducer.fireEvent(event);
+        }
+
+        if(entityType == ENTITY_TYPE_POST) {
+            // 计算帖子分数
+            String redisKey = RedisKeyUtil.getPostScoreKey();
+            redisTemplate.opsForSet().add(redisKey, postId);
         }
 
         return CommunityUtil.getJSONString(0, null, map);
